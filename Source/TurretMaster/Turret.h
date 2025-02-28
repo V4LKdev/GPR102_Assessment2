@@ -23,4 +23,19 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* BaseMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USceneComponent* RotationPoint;
+
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* ArmMesh;
+	
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* CannonMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USceneComponent* CentreMuzzle;	
 };

@@ -8,6 +8,21 @@ ATurret::ATurret()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	
+	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>("BaseMesh");
+	RootComponent = BaseMesh;
+	
+	RotationPoint = CreateDefaultSubobject<USceneComponent>("RotationPoint");
+	RotationPoint->SetupAttachment(RootComponent);
+	
+	ArmMesh = CreateDefaultSubobject<UStaticMeshComponent>("ArmMesh");
+	ArmMesh->SetupAttachment(RotationPoint);
+	
+	CannonMesh = CreateDefaultSubobject<UStaticMeshComponent>("CannonMesh");
+	CannonMesh->SetupAttachment(ArmMesh);
+	
+	CentreMuzzle = CreateDefaultSubobject<USceneComponent>("CentreMuzzle");
+	CentreMuzzle->SetupAttachment(CannonMesh);
 
 }
 

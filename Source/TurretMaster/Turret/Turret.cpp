@@ -40,26 +40,13 @@ void ATurret::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Timer to update rotation every few seconds
-	static float TestYaw = 0.0f;
-	static float TestPitch = 0.0f;
-	static float TimeSinceLastRotation = 0.0f;
-	TimeSinceLastRotation += DeltaTime;
+	// (TODO) Calculate impact point
 
-	if (TimeSinceLastRotation > 2.0f)  // Change target every 2 seconds
-	{
-		TimeSinceLastRotation = 0.0f;
+	// (TODO) Set yaw and pitch
 
-		// Generate random test yaw and pitch
-		TestYaw = FMath::RandRange(-90.0f, 90.0f);
-		TestPitch = FMath::RandRange(-45.0f, 45.0f);
+	// (TODO) Check muzzle is pointed at impact point
 
-		// Set new rotation targets
-		Fire();
-	}
-
-	SetYaw(TestYaw);
-	SetPitch(TestPitch);
+	// (TODO) If it is, FIRE!
 }
 
 void ATurret::Fire() const

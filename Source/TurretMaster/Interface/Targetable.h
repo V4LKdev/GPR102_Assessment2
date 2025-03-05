@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Interface.h"
 #include "Targetable.generated.h"
 
@@ -10,6 +11,7 @@ USTRUCT(BlueprintType)
 struct TURRETMASTER_API FTargetData
 {
 	GENERATED_BODY()
+	
 public:
 	FTargetData()
 		: Location(FVector::ZeroVector)
@@ -45,7 +47,6 @@ public:
 	// Determines whether the actor is targetable.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
 	bool IsTargetable() const;
-
-	
-	//virtual FGameplayTagContainer GetTargetTags() const = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	FGameplayTagContainer GetTargetTags() const;
 };

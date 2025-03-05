@@ -57,7 +57,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float Range = 5000.f;
 	UPROPERTY(EditAnywhere, meta = (Categories="Target", ToolTip="What targets the turrent shoots at"))
-	FGameplayTagContainer Targets;
+	FGameplayTagContainer TargetableTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Development")
 	bool bDrawDebug = true;

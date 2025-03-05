@@ -62,8 +62,15 @@ void ATurret::OnBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	
-	UE_LOG(LogTurretMaster, Log, TEXT("ATurret::OnBeginOverlap"));
+
+	// Called after returning from this function
+	ON_SCOPE_EXIT
+	{
+		// If there are any active targets, enable tick to trigger targeting logic
+		const bool bShouldTickActor = !ActiveTargets.IsEmpty();
+		SetActorTickEnabled(bShouldTickActor);
+	};
+
 	
 	// TODO: check if turret is active and the target tag
 	if (OtherActor && OtherActor->Implements<UTargetable>())
@@ -72,8 +79,18 @@ void ATurret::OnBeginOverlap(
 		{
 			return;
 		}
+
+		const FGameplayTagContainer TargetTags = ITargetable::Execute_GetTargetTags(OtherActor);
+		if (!TargetableTags.HasAnyExact(TargetTags))
+		{
+			return;
+		}
 		
-		UE_LOG(LogTemp, Log, TEXT("Turret %s: Target (%s) Entered Effective Range"), *GetName(), *OtherActor->GetName());
+		
+		FTargetData TargetData = ITargetable::Execute_GetTargetData(OtherActor);
+		
+		
+		UE_LOG(LogTurretMaster, Log, TEXT("Turret %s: Target (%s) Entered Effective Range"), *GetName(), *OtherActor->GetName());
 		ActiveTargets.Add(OtherActor);
 	}
 }

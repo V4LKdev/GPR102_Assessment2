@@ -14,7 +14,7 @@ namespace TMGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TargetType_Projectile_NoGravity,	"TargetType.Projectile.NoGravity",			"Used for targetable projectiles that DON'T have gravity enabled");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TargetType_Stationary,			"TargetType.Stationary",					"Used for targetable Actors that don't move (e.g. other turrets)");
 
-	UE_DEFINE_GAMEPLAY_TAG(Target_Enemy,							"TargetType.Enemy");
-	UE_DEFINE_GAMEPLAY_TAG(Target_Neutral,							"TargetType.Neutral");
-	UE_DEFINE_GAMEPLAY_TAG(Target_Friendly,							"TargetType.Friendly");
+	UE_DEFINE_GAMEPLAY_TAG(Target_Enemy,							"Target.Enemy");
+	UE_DEFINE_GAMEPLAY_TAG(Target_Neutral,							"Target.Neutral");
+	UE_DEFINE_GAMEPLAY_TAG(Target_Friendly,							"Target.Friendly");
 }

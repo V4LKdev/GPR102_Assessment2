@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
 #include "TurretMaster/Interface/Targetable.h"
 #include "TargetProjectile.generated.h"
@@ -21,11 +22,15 @@ public:
 
 	/** ITargeteable */
 	FORCEINLINE virtual bool IsTargetable_Implementation() const override { return true; }
+	FORCEINLINE virtual FGameplayTagContainer GetTargetTags_Implementation() const override { return TargetTags; }
 	virtual FTargetData GetTargetData_Implementation() const override;
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Categories="Target,TargetType"))
+	FGameplayTagContainer TargetTags;
 
 public:
 	// Called every frame

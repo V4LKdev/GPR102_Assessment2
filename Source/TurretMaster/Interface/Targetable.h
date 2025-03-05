@@ -1,4 +1,4 @@
-﻿// // CG Spectrum, Nic 2025
+﻿// CG Spectrum, Nic 2025
 
 #pragma once
 
@@ -25,6 +25,8 @@ public:
 	// Add more as needed
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTargetDestroyedDelegate, AActor* Caller);
+
 UINTERFACE(BlueprintType)
 class UTargetable : public UInterface
 {
@@ -49,4 +51,6 @@ public:
 	bool IsTargetable() const;
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
 	FGameplayTagContainer GetTargetTags() const;
+	
+	virtual FOnTargetDestroyedDelegate& GetOnTargetDestroyed() = 0;
 };

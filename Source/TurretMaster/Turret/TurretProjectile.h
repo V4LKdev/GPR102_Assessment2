@@ -11,7 +11,7 @@ class UProjectileMovementComponent;
 class USphereComponent;
 
 UCLASS()
-class TURRETMASTER_API ATurretProjectile : public AActor, public ITargetable
+class TURRETMASTER_API ATurretProjectile : public AActor
 {
 	GENERATED_BODY()
 

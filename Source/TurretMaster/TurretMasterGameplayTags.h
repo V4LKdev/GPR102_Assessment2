@@ -16,6 +16,7 @@ namespace TMGameplayTags
 	/**
 	 *	Target Tags
 	 */
+	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetType)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetType_Projectile_Gravity)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetType_Projectile_NoGravity)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetType_Stationary)
@@ -24,4 +25,6 @@ namespace TMGameplayTags
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Enemy)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Neutral)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Friendly)
+
+	// TODO: add projectile states, like being targeted or being free, and targeting priority levels, but that might be an int
 }

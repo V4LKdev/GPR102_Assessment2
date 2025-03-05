@@ -4,3 +4,4 @@
 #include "TurretMasterLogChannels.h"
 
 DEFINE_LOG_CATEGORY(LogTurretMaster);
+DEFINE_LOG_CATEGORY(LogInterception);

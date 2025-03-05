@@ -1,16 +1,15 @@
 ﻿// CG Spectrum 2025
 
-// This file's header
 #include "TargetProjectile.h"
-
-// Other includes
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/GameplayStaticsTypes.h"
 
-// Sets default values
+#include UE_INLINE_GENERATED_CPP_BY_NAME(TargetProjectile)
+
 ATargetProjectile::ATargetProjectile()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseMesh"));
@@ -20,6 +19,7 @@ ATargetProjectile::ATargetProjectile()
 	SphereCollider->SetupAttachment(BaseMesh);
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
+	ProjectileMovement->SetUpdatedComponent(RootComponent);
 }
 
 FTargetData ATargetProjectile::GetTargetData_Implementation() const
@@ -32,14 +32,53 @@ FTargetData ATargetProjectile::GetTargetData_Implementation() const
 	return Data;
 }
 
-// Called when the game starts or when spawned
 void ATargetProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (bDrawDebug)
+	{
+		PredictAndVisualizeProjectilePath();
+	}
+}
+
+void ATargetProjectile::PredictAndVisualizeProjectilePath() const
+{
+	if (!ProjectileMovement)
+	{
+		return;
+	}
+
+	// If the projectile doesn't have gravity, just draw a line
+	if (ProjectileMovement->ProjectileGravityScale == 0.f)
+	{
+		DrawDebugLine(GetWorld(), GetActorLocation(), ProjectileMovement->Velocity * 1000.f, FColor::Green, false, 3.f);
+		return;
+	}
+
+	// Set up the prediction parameters
+	FPredictProjectilePathParams Params;
+	Params.StartLocation = GetActorLocation();
+	Params.LaunchVelocity = ProjectileMovement->Velocity;
+	Params.bTraceComplex = true;
+	Params.bTraceWithCollision = true;
+	Params.ProjectileRadius = 10.f;
+	Params.MaxSimTime = 3.f;
+	Params.SimFrequency = 30;
+	Params.DrawDebugType = EDrawDebugTrace::ForDuration;
+	Params.DrawDebugTime = 3.f;
+
+	FPredictProjectilePathResult Result;
+
+	UGameplayStatics::PredictProjectilePath(GetWorld(), Params, Result);
 	
 }
 
-// Called every frame
+void ATargetProjectile::Death()
+{
+	OnTargetDestroyed.Broadcast(this);
+}
+
 void ATargetProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

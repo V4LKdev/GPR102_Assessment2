@@ -7,9 +7,23 @@
 #include "GameFramework/Actor.h"
 #include "Turret.generated.h"
 
+struct FTargetData;
 class UTargetable;
 class USphereComponent;
 class ATurretProjectile;
+
+
+USTRUCT()
+struct FInterceptSolution
+{
+	GENERATED_BODY();
+	
+public:
+	bool bHasSolution;
+	FVector ImpactPoint;
+	float TimeToImpact;
+	FRotator RequiredRotation;
+};
 
 UCLASS()
 class TURRETMASTER_API ATurret : public AActor
@@ -65,8 +79,31 @@ protected:
 private:
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	UFUNCTION()
+	void OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	/* Tries to remove an active target, and count the score up if it was destroyed */
+	void TryRemoveActiveTarget(AActor* Target, bool bDestroyed = false);
+	/* Checks if the actor should be ticking and sets it */
+	void UpdateTickState();
+
+	void MoveToIdle();
+
+	void SetTarget();
+
+	static bool DetermineTargetType(const AActor& Target, FGameplayTag& TargetType);
+
+	/* Helper functions to calculate the collision point depending on the target type
+	 * Returns false if the InterceptionPoint is out of range or impossible to hit */
+	bool CalculateInterceptionPoint_ProjectileNoGravity(const FTargetData& TargetData, FVector& InterceptionPoint);
+	bool CalculateInterceptionPoint_ProjectileGravity(const FTargetData& TargetData, FVector& InterceptionPoint);
+	bool CalculateInterceptionPoint_Stationary(const FTargetData& TargetData, FVector& InterceptionPoint) const;
+
+	bool IsPointWithinRange(const FVector& Point) const;
 	
-	TArray<AActor*> ActiveTargets;
+	TArray<TObjectPtr<AActor>> ActiveTargets;
+
+	TTuple<TObjectPtr<AActor>, FGameplayTag> CurrentTarget;
 	
 	//FGameplayTag CurrentTurretState;
 	//

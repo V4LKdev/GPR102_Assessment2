@@ -1,4 +1,4 @@
-﻿// CG Spectrum 2025
+﻿// CG Spectrum, Nic 2025
 
 // This file's header
 #include "TurretProjectile.h"
@@ -22,14 +22,12 @@ ATurretProjectile::ATurretProjectile()
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 }
 
-// Called when the game starts or when spawned
 void ATurretProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
 void ATurretProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

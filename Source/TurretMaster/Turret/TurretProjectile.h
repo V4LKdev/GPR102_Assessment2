@@ -1,16 +1,17 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// CG Spectrum, Nic 2025
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TurretMaster/Interface/Targetable.h"
 #include "TurretProjectile.generated.h"
 
 class UProjectileMovementComponent;
 class USphereComponent;
 
 UCLASS()
-class TURRETMASTER_API ATurretProjectile : public AActor
+class TURRETMASTER_API ATurretProjectile : public AActor, public ITargetable
 {
 	GENERATED_BODY()
 

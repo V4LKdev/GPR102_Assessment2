@@ -1,15 +1,16 @@
-// CG Spectrum 2025
+// CG Spectrum, Nic 2025
 
-// This file's header
 #include "Turret.h"
 
 #include "TurretProjectile.h"
+#include "Components/SphereComponent.h"
+#include "TurretMaster/TurretMasterLogChannels.h"
+#include "TurretMaster/Interface/Targetable.h"
 
-// Sets default values
 ATurret::ATurret()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 	
 	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>("BaseMesh");
 	RootComponent = BaseMesh;
@@ -26,27 +27,69 @@ ATurret::ATurret()
 	CentreMuzzle = CreateDefaultSubobject<USceneComponent>("CentreMuzzle");
 	CentreMuzzle->SetupAttachment(CannonMesh);
 
+	
+	TurretArea = CreateDefaultSubobject<USphereComponent>("TurretArea");
+	TurretArea->SetupAttachment(RootComponent);
+	TurretArea->SetSphereRadius(Range);
+	TurretArea->SetLineThickness(10.f);
+	TurretArea->ShapeColor = FColor::Yellow;
+	TurretArea->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	TurretArea->SetCollisionProfileName("OverlapAllDynamic");
 }
 
-// Called when the game starts or when spawned
+void ATurret::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	TurretArea->SetSphereRadius(Range);
+
+	/** DEBUG */
+	TurretArea->bHiddenInGame = !bDrawDebug;
+}
+
 void ATurret::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	TurretArea->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnBeginOverlap);
 }
 
-// Called every frame
+void ATurret::OnBeginOverlap(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	
+	UE_LOG(LogTurretMaster, Log, TEXT("ATurret::OnBeginOverlap"));
+	
+	// TODO: check if turret is active and the target tag
+	if (OtherActor && OtherActor->Implements<UTargetable>())
+	{
+		if (ActiveTargets.Contains(OtherActor) || !ITargetable::Execute_IsTargetable(OtherActor))
+		{
+			return;
+		}
+		
+		UE_LOG(LogTemp, Log, TEXT("Turret %s: Target (%s) Entered Effective Range"), *GetName(), *OtherActor->GetName());
+		ActiveTargets.Add(OtherActor);
+	}
+}
+
+
 void ATurret::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// (TODO) Calculate impact point
+	// TODO: Calculate impact point
 
-	// (TODO) Set yaw and pitch
+	// TODO: Set yaw and pitch
 
-	// (TODO) Check muzzle is pointed at impact point
+	// TODO: Check muzzle is pointed at impact point
 
-	// (TODO) If it is, FIRE!
+	// TODO: If it is, FIRE!
 }
 
 void ATurret::Fire() const
@@ -56,24 +99,24 @@ void ATurret::Fire() const
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	// Spawn the turret projectile
-	AActor* SpawnedProjectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, CentreMuzzle->GetComponentLocation(), CentreMuzzle->GetComponentRotation(), SpawnParams);
+	const AActor* SpawnedProjectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, CentreMuzzle->GetComponentLocation(), CentreMuzzle->GetComponentRotation(), SpawnParams);
 	if (SpawnedProjectile)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Turret Projectile spawned."));
+		UE_LOG(LogTurretMaster, Warning, TEXT("Turret Projectile spawned."));
 	}
 }
 
-void ATurret::SetYaw(float TargetYaw) const
+void ATurret::SetYaw(const float TargetYaw) const
 {
-	FRotator CurrentRotation = RotationPoint->GetComponentRotation();
-	float NewYaw = FMath::FInterpTo(CurrentRotation.Yaw, TargetYaw, GetWorld()->GetDeltaSeconds(), TurnSpeed);
+	const FRotator CurrentRotation = RotationPoint->GetComponentRotation();
+	const float NewYaw = FMath::FInterpTo(CurrentRotation.Yaw, TargetYaw, GetWorld()->GetDeltaSeconds(), TurnSpeed);
 	RotationPoint->SetWorldRotation(FRotator(CurrentRotation.Pitch, NewYaw, CurrentRotation.Roll));
 }
 
-void ATurret::SetPitch(float TargetPitch) const
+void ATurret::SetPitch(const float TargetPitch) const
 {
-	FRotator CurrentRotation = RotationPoint->GetComponentRotation();
-	float NewPitch = FMath::FInterpTo(CurrentRotation.Pitch, TargetPitch, GetWorld()->GetDeltaSeconds(), TurnSpeed);
+	const FRotator CurrentRotation = RotationPoint->GetComponentRotation();
+	const float NewPitch = FMath::FInterpTo(CurrentRotation.Pitch, TargetPitch, GetWorld()->GetDeltaSeconds(), TurnSpeed);
 	RotationPoint->SetWorldRotation(FRotator(NewPitch, CurrentRotation.Yaw, CurrentRotation.Roll));
 }
 

@@ -22,6 +22,16 @@ ATargetProjectile::ATargetProjectile()
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 }
 
+FTargetData ATargetProjectile::GetTargetData_Implementation() const
+{
+	FTargetData Data;
+
+	Data.Location = GetActorLocation();
+	Data.Velocity = GetVelocity();
+
+	return Data;
+}
+
 // Called when the game starts or when spawned
 void ATargetProjectile::BeginPlay()
 {

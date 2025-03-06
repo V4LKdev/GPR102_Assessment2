@@ -25,6 +25,8 @@ namespace TMGameplayTags
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Enemy)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Neutral)
 	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target_Friendly)
-
-	// TODO: add projectile states, like being targeted or being free, and targeting priority levels, but that might be an int
+	
+	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetState_Available)
+	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetState_Ignore)
+	TURRETMASTER_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetState_Targeted)
 }

@@ -5,6 +5,7 @@
 #include "InterceptionHandler.h"
 #include "KismetTraceUtils.h"
 #include "TurretProjectile.h"
+#include "Chaos/PBDSuspensionConstraintData.h"
 #include "Components/SphereComponent.h"
 #include "TurretMaster/TurretMasterGameplayTags.h"
 #include "TurretMaster/TurretMasterLogChannels.h"
@@ -98,7 +99,7 @@ void ATurret::OnBeginOverlap(
 		// Binds the Target's OnTargetDestroyed Delegate
 		CastChecked<ITargetable>(OtherActor)->GetOnTargetDestroyed().AddLambda([&](AActor* Caller)
 		{
-			TryRemoveActiveTarget(Caller, true);
+			TryRemoveActiveTarget(Caller);
 		});
 		
 		UE_LOG(LogTurretMaster, Log, TEXT("Turret %s: Target (%s) Entered Effective Range"), *GetName(), *OtherActor->GetName());
@@ -112,14 +113,17 @@ void ATurret::OnEndOverlap(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-	TryRemoveActiveTarget(OtherActor);
+	if (OtherActor && OtherActor->Implements<UTargetable>())
+	{
+		TryRemoveActiveTarget(OtherActor);
+	}
 }
 
 #pragma endregion // Overlapping
 
 #pragma region Target Handling
 
-void ATurret::TryRemoveActiveTarget(AActor* Target, const bool bDestroyed)
+void ATurret::TryRemoveActiveTarget(AActor* Target)
 {
 	if (!Target)
 	{
@@ -146,16 +150,12 @@ void ATurret::TryRemoveActiveTarget(AActor* Target, const bool bDestroyed)
 	}
 
 	UpdateTickState();
-
-	if (bDestroyed)
-	{
-		// TODO: Increment counter
-	}
 }
 
-void ATurret::SetTarget()
+void ATurret::DetermineNewTarget()
 {
-	// Iterate over active targets until a valid target is found
+	/* Iterate over active targets until a valid target is found
+	* For now this will always return a valid target */
 	for (int i = 0; i < ActiveTargets.Num(); i++)
 	{
 		AActor* Target = ActiveTargets[i];
@@ -172,6 +172,51 @@ void ATurret::SetTarget()
 			break;
 		}
 	}
+
+	check(CurrentTarget.Key); // Ensure we got a valid target to work with
+
+	// Calculate Interception point based on the projectile type
+	FVector InterceptionPoint = FVector::ZeroVector;
+	TargetInterceptionRotation = FRotator::ZeroRotator;
+	bool bValidInterceptionPoint = false;
+	const FTargetData TargetData = ITargetable::Execute_GetTargetData(CurrentTarget.Key);
+	
+	if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Stationary))
+	{
+		bValidInterceptionPoint = CalculateInterceptionPoint_Stationary(TargetData, InterceptionPoint);
+	}
+	else if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Projectile_NoGravity))
+	{
+		bValidInterceptionPoint = CalculateInterceptionPoint_ProjectileNoGravity(TargetData, InterceptionPoint);
+	}
+	else if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Projectile_Gravity))
+	{
+		//TODO 
+		//bValidInterceptionPoint = CalculateInterceptionPoint_ProjectileGravity(TargetData, InterceptionPoint);
+		bValidInterceptionPoint = false;
+	}
+	else
+	{
+		UE_LOG(LogTurretMaster, Warning, TEXT("Unhandled TargetType: %s"), *CurrentTarget.Value.GetTagName().ToString());
+		bValidInterceptionPoint = false;
+	}
+
+	if (!bValidInterceptionPoint || !IsPointWithinRange(InterceptionPoint))
+	{
+		// If the collision point is deemed invalid or unreachable, remove the target from the active list and find a new target
+		TryRemoveActiveTarget(CurrentTarget.Key);
+		if (!ActiveTargets.IsEmpty())
+		{
+			DetermineNewTarget();
+		}
+	}
+
+	// Calculate Target Rotation
+	FVector Direction = InterceptionPoint - RotationPoint->GetComponentLocation();
+	Direction.Normalize();
+	TargetInterceptionRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
+	
+	UE_LOG(LogTurretMaster, Verbose, TEXT("Active Target Changed"));
 }
 
 bool ATurret::DetermineTargetType(const AActor& Target, FGameplayTag& TargetType)
@@ -179,6 +224,7 @@ bool ATurret::DetermineTargetType(const AActor& Target, FGameplayTag& TargetType
 	bool bFoundTag = false;
 	int MatchingTagCount = 0;
 
+	// This should be valid for all targets, but maybe handle failure here
 	FGameplayTagContainer TagContainer = ITargetable::Execute_GetTargetTags(&Target);
 	
 	for (const FGameplayTag& Tag : TagContainer)
@@ -200,7 +246,6 @@ bool ATurret::DetermineTargetType(const AActor& Target, FGameplayTag& TargetType
 }
 
 #pragma endregion // Target Handling
-
 
 void ATurret::UpdateTickState()
 {
@@ -234,12 +279,6 @@ void ATurret::UpdateTickState()
 void ATurret::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	/* TODO: Determine Target
-		That includes checking
-		TargetType
-		If its still Reachable
-		If its already being targeted */
 	
 	if (ActiveTargets.IsEmpty())
 	{
@@ -249,59 +288,28 @@ void ATurret::Tick(float DeltaTime)
 	
 	if (CurrentTarget.Key == nullptr)
 	{
-		// Select a target if none is currently set, this should always return a valid target as "CurrentTarget"
-		SetTarget();
-		check(CurrentTarget.Key);
-		UE_LOG(LogTurretMaster, Log, TEXT("Active Target Changed"));
-
-		// TODO: Calculate Interception
-		
-		FVector InterceptionPoint = FVector::ZeroVector;
-		const FTargetData TargetData = ITargetable::Execute_GetTargetData(CurrentTarget.Key);
-		bool bValidInterceptionPoint = false;
-
-		// Calculate Interception Point depending on what type of target it is
-		if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Stationary))
-		{
-			bValidInterceptionPoint = CalculateInterceptionPoint_Stationary(TargetData, InterceptionPoint);
-		}
-		else if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Projectile_NoGravity))
-		{
-			bValidInterceptionPoint = CalculateInterceptionPoint_ProjectileNoGravity(TargetData, InterceptionPoint);
-		}
-		else if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Projectile_Gravity))
-		{
-			bValidInterceptionPoint = CalculateInterceptionPoint_ProjectileGravity(TargetData, InterceptionPoint);
-		}
-
-		if (!bValidInterceptionPoint)
-		{
-			// If the collision point is deemed invalid or unreachable, remove the target from the active list.
-			TryRemoveActiveTarget(CurrentTarget.Key, false);
-		}
+		DetermineNewTarget();
 	}
 	
-	// TODO: Set yaw and pitch
-
-	// just some random llook at test, Temp stuff
-	if (CurrentTarget.Key != nullptr)
+	// If a target is set with a valid Interception point, rotate towards that point
+	if (CurrentTarget.Key != nullptr && TargetInterceptionRotation != FRotator::ZeroRotator)
 	{
-		const FTargetData TargetData = ITargetable::Execute_GetTargetData(CurrentTarget.Key);
-		
-		FVector Direction = TargetData.Location - RotationPoint->GetComponentLocation();
-		Direction.Normalize();
-		
-		FRotator TargetRot = FRotationMatrix::MakeFromX(Direction).Rotator();
+		if (!RotationPoint->GetComponentRotation().Equals(TargetInterceptionRotation, 0.5f))
+		{
+			SetPitch(TargetInterceptionRotation.Pitch);
+			SetYaw(TargetInterceptionRotation.Yaw);
 
-		SetPitch(TargetRot.Pitch);
-		SetYaw(TargetRot.Yaw);
+			return;
+		}
+
+		// TODO: Check muzzle is pointed at impact point
+
+		Fire();
+		TryRemoveActiveTarget(CurrentTarget.Key);
 	}
-
-	// TODO: Check muzzle is pointed at impact point
-
-	// TODO: If it is, FIRE!
 }
 
+// TODO: Unify rotation into one function
 void ATurret::MoveToIdle()
 {
 	SetPitch(GetIdleRotation().Pitch);
@@ -321,7 +329,7 @@ bool ATurret::CalculateInterceptionPoint_ProjectileNoGravity(const FTargetData& 
 		RotationPoint->GetComponentRotation(),
 		TargetData.Location,
 		TargetData.Velocity,
-		2200.f /* TODO: get ProjectileSpeed */,
+		3000.f /* TODO: get ProjectileSpeed */,
 		TurnSpeed,
 		Radius,
 		InterceptionPoint);
@@ -343,6 +351,8 @@ bool ATurret::CalculateInterceptionPoint_ProjectileNoGravity(const FTargetData& 
 
 			DrawDebugLine(GetWorld(),
 				CenterMuzzle->GetComponentLocation(), InterceptionPoint, FColor::Purple, false, 3.0f, 0, 5.f);
+
+			// TODO: Debug the point of the target when the projectile needs to be fired, basically last possible fire moment
 		}
 		
 		return true;
@@ -364,7 +374,7 @@ bool ATurret::CalculateInterceptionPoint_Stationary(const FTargetData& TargetDat
 bool ATurret::IsPointWithinRange(const FVector& Point) const
 {
 	float Distance = FVector::Dist(Point, GetActorLocation());
-	return Distance <= TurretArea->GetScaledSphereRadius();
+	return Distance <= Range;
 }
 
 

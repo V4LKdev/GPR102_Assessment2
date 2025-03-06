@@ -10,7 +10,6 @@
 // Sets default values
 ATurretProjectile::ATurretProjectile()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseMesh"));
@@ -20,6 +19,7 @@ ATurretProjectile::ATurretProjectile()
 	SphereCollider->SetupAttachment(BaseMesh);
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
+	ProjectileMovement->UpdatedComponent = BaseMesh;
 }
 
 void ATurretProjectile::BeginPlay()

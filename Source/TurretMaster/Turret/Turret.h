@@ -83,13 +83,13 @@ private:
 	void OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	/* Tries to remove an active target, and count the score up if it was destroyed */
-	void TryRemoveActiveTarget(AActor* Target, bool bDestroyed = false);
+	void TryRemoveActiveTarget(AActor* Target);
 	/* Checks if the actor should be ticking and sets it */
 	void UpdateTickState();
 
 	void MoveToIdle();
 
-	void SetTarget();
+	void DetermineNewTarget();
 
 	static bool DetermineTargetType(const AActor& Target, FGameplayTag& TargetType);
 
@@ -106,6 +106,7 @@ private:
 	TArray<TObjectPtr<AActor>> ActiveTargets;
 
 	TTuple<TObjectPtr<AActor>, FGameplayTag> CurrentTarget;
+	FRotator TargetInterceptionRotation;
 	
 	//FGameplayTag CurrentTurretState;
 	//

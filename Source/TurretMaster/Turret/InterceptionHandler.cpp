@@ -4,7 +4,7 @@
 
 #include "TurretMaster/TurretMasterLogChannels.h"
 
-static constexpr float BUFFER_TIME = 0.05f;
+static constexpr float BUFFER_TIME = 0.0f;
 
 bool InterceptionHandler::PredictInterceptionPoint(
 	const FVector& TurretPos,
@@ -58,8 +58,8 @@ bool InterceptionHandler::QuadraticEquationInterception(
 	const FVector& TurretPos,
 	const FVector& TargetPos,
 	const FVector& TargetVel,
-	float ProjectileSpeed,
-	float TimeDelay,
+	const float ProjectileSpeed,
+	const float TimeDelay,
 	FVector& OutInterceptionPoint)
 {
 
@@ -174,8 +174,8 @@ float InterceptionHandler::CalculateRotationTime(
 	const FVector& CurrentLoc,
 	const FRotator& CurrentRot,
 	const FVector& TargetLoc,
-	float RotateSpeed,
-	float AngleTolerance)
+	const float RotateSpeed,
+	const float AngleTolerance)
 {
 	const FVector TargetDir = (TargetLoc - CurrentLoc).GetSafeNormal();
 	const FRotator TargetRot = TargetDir.Rotation();
@@ -190,48 +190,3 @@ float InterceptionHandler::CalculateRotationTime(
 
 	return FMath::Max(0.f, FMath::Loge(MaxAngularDistance / AngleTolerance) / RotateSpeed);
 }
-
-
-//TArray<FVector> InterceptionHandler::CalculateInterceptionWindow(
-//	const FVector& TurretPos,
-//	const FRotator& TurretRot,
-//	const FVector& TargetPos,
-//	const FVector& TargetVel,
-//	float ProjectileSpeed,
-//	float RotateSpeed,
-//	float TurretRadius,
-//	int32 NumberOfSteps,
-//	float TimeStep)
-//{
-//
-//	TArray<FVector> ValidPoints;
-//	
-//	for (int i = 0; i < NumberOfSteps; i++)
-//	{
-//		const float CurrentTime = TimeStep * i;
-//		
-//		// Advance target position by current sample time
-//		const FVector FutureTargetPos = TargetPos + (TargetVel * CurrentTime);
-//		
-//		// Calculate interception point for this future position
-//		const FVector InterceptionPoint = QuadraticEquationInterception(
-//			TurretPos,
-//			FutureTargetPos,
-//			TargetVel,
-//			ProjectileSpeed
-//		);
-//
-//		if (InterceptionPoint != FVector::ZeroVector && FVector::Dist(InterceptionPoint, TurretPos) < TurretRadius)
-//		{
-//			ValidPoints.Add(InterceptionPoint);
-//		}
-//		else if (ValidPoints.Num() > 2)
-//		{
-//			// Optimize to not always calculate all points if the window has passed already
-//			UE_LOG(LogInterception, Log, TEXT("Exiting Prediction Early"));
-//			break;
-//		}
-//	}
-//
-//	return ValidPoints;
-//}

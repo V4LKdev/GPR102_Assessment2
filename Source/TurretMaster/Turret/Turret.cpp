@@ -30,8 +30,8 @@ ATurret::ATurret()
 	CannonMesh = CreateDefaultSubobject<UStaticMeshComponent>("CannonMesh");
 	CannonMesh->SetupAttachment(ArmMesh);
 	
-	CentreMuzzle = CreateDefaultSubobject<USceneComponent>("CentreMuzzle");
-	CentreMuzzle->SetupAttachment(CannonMesh);
+	CenterMuzzle = CreateDefaultSubobject<USceneComponent>("CenterMuzzle");
+	CenterMuzzle->SetupAttachment(CannonMesh);
 
 	
 	TurretArea = CreateDefaultSubobject<USphereComponent>("TurretArea");
@@ -314,31 +314,40 @@ void ATurret::MoveToIdle()
 
 bool ATurret::CalculateInterceptionPoint_ProjectileNoGravity(const FTargetData& TargetData, FVector& InterceptionPoint)
 {
-	InterceptionPoints = InterceptionHandler::CalculateInterceptionWindow(CentreMuzzle->GetComponentLocation(), TargetData.Location, TargetData.Velocity, 2000.f, TurretArea->GetScaledSphereRadius());
+	float Radius = TurretArea->GetScaledSphereRadius();
 	
-	if (InterceptionPoints.Num() > 1)
+	bool bIsInterceptable = InterceptionHandler::PredictInterceptionPoint(
+		CenterMuzzle->GetComponentLocation(),
+		RotationPoint->GetComponentRotation(),
+		TargetData.Location,
+		TargetData.Velocity,
+		2200.f /* TODO: get ProjectileSpeed */,
+		TurnSpeed,
+		Radius,
+		InterceptionPoint);
+
+	if (bIsInterceptable)
 	{
 
-		
 		if (bDrawDebug)
 		{
-			DrawDebugLine(GetWorld(), InterceptionPoints[0], InterceptionPoints.Last(), FColor::Purple, false, 4.0f, 0, 10.f);
+			DrawDebugSphere(GetWorld(),
+				InterceptionPoint,
+				15.f,
+				12,
+				FColor::Emerald,
+				false,
+				3.f,
+				0,
+				3.f);
 
-			for (int32 i = 0; i < InterceptionPoints.Num(); i++)
-			{
-				DrawDebugPoint(
-								GetWorld(),
-								InterceptionPoints[i],
-								8,
-								FColor::Orange,
-								false,
-								4.f
-							);
-			}
+			DrawDebugLine(GetWorld(),
+				CenterMuzzle->GetComponentLocation(), InterceptionPoint, FColor::Purple, false, 3.0f, 0, 5.f);
 		}
+		
+		return true;
 	}
-	
-	return true;
+	return false;
 }
 
 bool ATurret::CalculateInterceptionPoint_ProjectileGravity(const FTargetData& TargetData, FVector& InterceptionPoint)
@@ -368,7 +377,7 @@ void ATurret::Fire() const
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	// Spawn the turret projectile
-	const AActor* SpawnedProjectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, CentreMuzzle->GetComponentLocation(), CentreMuzzle->GetComponentRotation(), SpawnParams);
+	const AActor* SpawnedProjectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, CenterMuzzle->GetComponentLocation(), CenterMuzzle->GetComponentRotation(), SpawnParams);
 	if (SpawnedProjectile)
 	{
 		UE_LOG(LogTurretMaster, Warning, TEXT("Turret Projectile spawned."));

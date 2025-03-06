@@ -58,7 +58,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UStaticMeshComponent> CannonMesh;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USceneComponent> CentreMuzzle;
+	TObjectPtr<USceneComponent> CenterMuzzle;
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USphereComponent> TurretArea;
 	
@@ -106,7 +106,6 @@ private:
 	TArray<TObjectPtr<AActor>> ActiveTargets;
 
 	TTuple<TObjectPtr<AActor>, FGameplayTag> CurrentTarget;
-	TArray<FVector> InterceptionPoints;
 	
 	//FGameplayTag CurrentTurretState;
 	//

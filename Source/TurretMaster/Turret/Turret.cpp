@@ -3,6 +3,7 @@
 #include "Turret.h"
 
 #include "InterceptionHandler.h"
+#include "KismetTraceUtils.h"
 #include "TurretProjectile.h"
 #include "Components/SphereComponent.h"
 #include "TurretMaster/TurretMasterGameplayTags.h"
@@ -53,7 +54,6 @@ void ATurret::OnConstruction(const FTransform& Transform)
 }
 
 #pragma endregion // Construction
-
 
 void ATurret::BeginPlay()
 {
@@ -205,10 +205,18 @@ bool ATurret::DetermineTargetType(const AActor& Target, FGameplayTag& TargetType
 void ATurret::UpdateTickState()
 {
 	// If there are any active targets, enable tick to trigger targeting logic
-	bool bShouldTickActor;
-	const bool bHasTargets = ActiveTargets.IsEmpty();
-	bShouldTickActor = !bHasTargets; // TODO: Implement Idle state animation case here
-	SetActorTickEnabled(bShouldTickActor);
+	const bool bHasTargets = !ActiveTargets.IsEmpty();
+	const bool bInIdlePos = RotationPoint->GetComponentRotation().Equals(GetIdleRotation(), 1.f);
+	const bool bIsTicking = IsActorTickEnabled();
+
+	if (!bIsTicking &&(bHasTargets || (!bHasTargets && !bInIdlePos)))
+	{
+		SetActorTickEnabled(true);
+	}
+	else if (bIsTicking && !bHasTargets && bInIdlePos)
+	{
+		SetActorTickEnabled(false);
+	}
 
 	/** DEBUG */
 	if (bHasTargets)
@@ -232,27 +240,27 @@ void ATurret::Tick(float DeltaTime)
 		TargetType
 		If its still Reachable
 		If its already being targeted */
-
+	
 	if (ActiveTargets.IsEmpty())
 	{
-		// TODO: Perform move to Idle here, then disable tick
 		MoveToIdle();
+		return;
 	}
 	
 	if (CurrentTarget.Key == nullptr)
 	{
-		// Select a target if none is currently set, this should always return a valid target as @CurrentTarget
+		// Select a target if none is currently set, this should always return a valid target as "CurrentTarget"
 		SetTarget();
 		check(CurrentTarget.Key);
 		UE_LOG(LogTurretMaster, Log, TEXT("Active Target Changed"));
 
-		// TODO: Calculate impact point
-
+		// TODO: Calculate Interception
+		
 		FVector InterceptionPoint = FVector::ZeroVector;
 		const FTargetData TargetData = ITargetable::Execute_GetTargetData(CurrentTarget.Key);
 		bool bValidInterceptionPoint = false;
 
-		// Calculate Collision Point depending on what type of target it is
+		// Calculate Interception Point depending on what type of target it is
 		if (CurrentTarget.Value.MatchesTagExact(TMGameplayTags::TargetType_Stationary))
 		{
 			bValidInterceptionPoint = CalculateInterceptionPoint_Stationary(TargetData, InterceptionPoint);
@@ -275,75 +283,59 @@ void ATurret::Tick(float DeltaTime)
 	
 	// TODO: Set yaw and pitch
 
+	// just some random llook at test, Temp stuff
+	if (CurrentTarget.Key != nullptr)
+	{
+		const FTargetData TargetData = ITargetable::Execute_GetTargetData(CurrentTarget.Key);
+		
+		FVector Direction = TargetData.Location - RotationPoint->GetComponentLocation();
+		Direction.Normalize();
+		
+		FRotator TargetRot = FRotationMatrix::MakeFromX(Direction).Rotator();
+
+		SetPitch(TargetRot.Pitch);
+		SetYaw(TargetRot.Yaw);
+	}
+
 	// TODO: Check muzzle is pointed at impact point
 
 	// TODO: If it is, FIRE!
 }
 
-
-
 void ATurret::MoveToIdle()
 {
-}
+	SetPitch(GetIdleRotation().Pitch);
+	SetYaw(GetIdleRotation().Yaw);
 
+	// Disable Tick if IdleRotation is reached
+	UpdateTickState();
+}
 
 
 bool ATurret::CalculateInterceptionPoint_ProjectileNoGravity(const FTargetData& TargetData, FVector& InterceptionPoint)
 {
-#if 0
-	const float TimeStep = 0.1f;
-	const int32 NumSteps = 50;
-	const float PredictionDuration = TimeStep * NumSteps;
-
-	TArray<FVector> PredictionPoints;
-	PredictionPoints.Reserve(NumSteps);
-
-	for (int i = 0; i < NumSteps; i++)
-	{
-		const float CurrentTime = TimeStep * i;
-		const FVector PredictedPosition = TargetData.Location + (TargetData.Velocity * CurrentTime);
-		PredictionPoints.Add(PredictedPosition);
-	}
-
-	if (bDrawDebug)
-	{
-		UWorld* World = GetWorld();
-		for (int32 i = 0; i < PredictionPoints.Num() - 1; ++i)
-		{
-			// Draw line between consecutive points
-			DrawDebugLine(
-				World,
-				PredictionPoints[i],
-				PredictionPoints[i + 1],
-				FColor::Green,
-				false, 5.0f, 0,
-				1.5f // Thickness
-			);
-        
-			// Draw point at prediction location
-			DrawDebugPoint(
-				World,
-				PredictionPoints[i],
-				5,
-				FColor::Red,
-				false,
-				5.f
-			);
-		}
-	}
-#endif
-
-	InterceptionPoint = InterceptionHandler::QuadraticEquationInterception(CentreMuzzle->GetComponentLocation(), TargetData.Location, TargetData.Velocity, 2500.f);
-
-	if (InterceptionPoint == FVector::ZeroVector || !IsPointWithinRange(InterceptionPoint))
-	{
-		UE_LOG(LogTurretMaster, Warning, TEXT("No Interception Possible"));
-	}
+	InterceptionPoints = InterceptionHandler::CalculateInterceptionWindow(CentreMuzzle->GetComponentLocation(), TargetData.Location, TargetData.Velocity, 2000.f, TurretArea->GetScaledSphereRadius());
 	
-	else if (bDrawDebug)
+	if (InterceptionPoints.Num() > 1)
 	{
-		DrawDebugLine(GetWorld(), CentreMuzzle->GetComponentLocation(), InterceptionPoint, FColor::Red, false, 5.0f, 0, 1.5f);
-		DrawDebugSphere(GetWorld(), InterceptionPoint, 25.f, 12,FColor::Orange, false, 5.0f, 0, 1.5f);
+
+		
+		if (bDrawDebug)
+		{
+			DrawDebugLine(GetWorld(), InterceptionPoints[0], InterceptionPoints.Last(), FColor::Purple, false, 4.0f, 0, 10.f);
+
+			for (int32 i = 0; i < InterceptionPoints.Num(); i++)
+			{
+				DrawDebugPoint(
+								GetWorld(),
+								InterceptionPoints[i],
+								8,
+								FColor::Orange,
+								false,
+								4.f
+							);
+			}
+		}
 	}
 	
 	return true;
@@ -393,8 +385,16 @@ void ATurret::SetYaw(const float TargetYaw) const
 void ATurret::SetPitch(const float TargetPitch) const
 {
 	const FRotator CurrentRotation = RotationPoint->GetComponentRotation();
-	const float NewPitch = FMath::FInterpTo(CurrentRotation.Pitch, TargetPitch, GetWorld()->GetDeltaSeconds(), TurnSpeed);
+	float NewPitch = FMath::FInterpTo(CurrentRotation.Pitch, TargetPitch, GetWorld()->GetDeltaSeconds(), TurnSpeed);
+	NewPitch = FMath::Clamp(NewPitch, -70.0f, 80.0f);
 	RotationPoint->SetWorldRotation(FRotator(NewPitch, CurrentRotation.Yaw, CurrentRotation.Roll));
 }
 
 
+FRotator ATurret::GetIdleRotation() const
+{
+	FVector Direction = GetActorForwardVector();
+	FRotator ForwardRot = FRotationMatrix::MakeFromX(Direction).Rotator();
+	ForwardRot.Pitch += 25.f;
+	return ForwardRot;
+}

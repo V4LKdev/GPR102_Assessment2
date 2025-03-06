@@ -101,9 +101,12 @@ private:
 
 	bool IsPointWithinRange(const FVector& Point) const;
 	
+	FRotator GetIdleRotation() const;
+	
 	TArray<TObjectPtr<AActor>> ActiveTargets;
 
 	TTuple<TObjectPtr<AActor>, FGameplayTag> CurrentTarget;
+	TArray<FVector> InterceptionPoints;
 	
 	//FGameplayTag CurrentTurretState;
 	//
@@ -112,3 +115,4 @@ private:
 	//UFUNCTION(BlueprintCallable)
 	//FGameplayTag GetCurrentTurretState() const { return CurrentTurretState; }
 };
+
